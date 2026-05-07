@@ -1,0 +1,19 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Backend
+backend/target/
+
+# Mobile
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
