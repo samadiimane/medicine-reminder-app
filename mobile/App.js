@@ -21,6 +21,7 @@ export default function App() {
   const [token, setToken] = useState('');
   const [medicines, setMedicines] = useState([]);
 
+  const [editingMedicineId, setEditingMedicineId] = useState(null);
   const [medicineName, setMedicineName] = useState('');
   const [dose, setDose] = useState('');
   const [time, setTime] = useState('08:00:00');
@@ -29,6 +30,15 @@ export default function App() {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const clearMedicineForm = () => {
+    setEditingMedicineId(null);
+    setMedicineName('');
+    setDose('');
+    setTime('08:00:00');
+    setFrequency('');
+    setNotes('');
+  };
 
   const handleLogin = async () => {
     setLoading(true);
@@ -86,13 +96,18 @@ export default function App() {
     }
   };
 
-  const handleAddMedicine = async () => {
+  const handleSaveMedicine = async () => {
     setLoading(true);
     setError('');
 
+    const isEditing = editingMedicineId !== null;
+    const url = isEditing
+      ? `${API_BASE_URL}/api/medicines/${editingMedicineId}`
+      : `${API_BASE_URL}/api/medicines`;
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/medicines`, {
-        method: 'POST',
+      const response = await fetch(url, {
+        method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -107,21 +122,29 @@ export default function App() {
       });
 
       if (!response.ok) {
-        throw new Error(`Add medicine failed with status ${response.status}`);
+        throw new Error(
+          isEditing
+            ? `Update medicine failed with status ${response.status}`
+            : `Add medicine failed with status ${response.status}`
+        );
       }
 
-      setMedicineName('');
-      setDose('');
-      setTime('08:00:00');
-      setFrequency('');
-      setNotes('');
-
+      clearMedicineForm();
       await fetchMedicines();
     } catch (err) {
-      setError(err.message || 'Could not add medicine');
+      setError(err.message || 'Could not save medicine');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditMedicine = (medicine) => {
+    setEditingMedicineId(medicine.id);
+    setMedicineName(medicine.name || '');
+    setDose(medicine.dose || '');
+    setTime(medicine.time || '08:00:00');
+    setFrequency(medicine.frequency || '');
+    setNotes(medicine.notes || '');
   };
 
   const handleDeleteMedicine = async (id) => {
@@ -140,6 +163,10 @@ export default function App() {
         throw new Error(`Delete failed with status ${response.status}`);
       }
 
+      if (editingMedicineId === id) {
+        clearMedicineForm();
+      }
+
       await fetchMedicines();
     } catch (err) {
       setError(err.message || 'Could not delete medicine');
@@ -153,6 +180,7 @@ export default function App() {
     setToken('');
     setMedicines([]);
     setError('');
+    clearMedicineForm();
   };
 
   if (user) {
@@ -165,7 +193,9 @@ export default function App() {
             <Text style={styles.title}>My Medicines</Text>
             <Text style={styles.subtitle}>Logged in as {user.fullName}</Text>
 
-            <Text style={styles.sectionTitle}>Add medicine</Text>
+            <Text style={styles.sectionTitle}>
+              {editingMedicineId ? 'Edit medicine' : 'Add medicine'}
+            </Text>
 
             <Text style={styles.label}>Name</Text>
             <TextInput
@@ -210,8 +240,17 @@ export default function App() {
             {loading ? (
               <ActivityIndicator />
             ) : (
-              <Button title="Add medicine" onPress={handleAddMedicine} />
+              <Button
+                title={editingMedicineId ? 'Update medicine' : 'Add medicine'}
+                onPress={handleSaveMedicine}
+              />
             )}
+
+            {editingMedicineId ? (
+              <View style={styles.cancelButton}>
+                <Button title="Cancel edit" onPress={clearMedicineForm} />
+              </View>
+            ) : null}
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -230,12 +269,18 @@ export default function App() {
                   <Text>Frequency: {item.frequency}</Text>
                   <Text>Notes: {item.notes || '-'}</Text>
 
-                  <View style={styles.deleteButton}>
-                    <Button
-                      title="Delete"
-                      color="red"
-                      onPress={() => handleDeleteMedicine(item.id)}
-                    />
+                  <View style={styles.actionRow}>
+                    <View style={styles.actionButton}>
+                      <Button title="Edit" onPress={() => handleEditMedicine(item)} />
+                    </View>
+
+                    <View style={styles.actionButton}>
+                      <Button
+                        title="Delete"
+                        color="red"
+                        onPress={() => handleDeleteMedicine(item.id)}
+                      />
+                    </View>
                   </View>
                 </View>
               ))
@@ -360,8 +405,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 4,
   },
-  deleteButton: {
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
     marginTop: 10,
+  },
+  actionButton: {
+    flex: 1,
+  },
+  cancelButton: {
+    marginTop: 8,
   },
   logoutButton: {
     marginTop: 16,
