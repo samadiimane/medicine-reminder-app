@@ -10,23 +10,33 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
-export default function LoginScreen({
+export default function RegisterScreen({
+  fullName,
+  setFullName,
   email,
   setEmail,
   password,
   setPassword,
   loading,
   error,
-  onLogin,
-  onGoToRegister,
+  onRegister,
+  onGoToLogin,
 }) {
   return (
     <SafeAreaView style={styles.loginContainer}>
       <StatusBar style="auto" />
 
       <View style={styles.card}>
-        <Text style={styles.title}>Medicine Reminder</Text>
-        <Text style={styles.subtitle}>Login to manage your medicine schedule</Text>
+        <Text style={styles.title}>Create Account</Text>
+        <Text style={styles.subtitle}>Register to manage your medicines</Text>
+
+        <Text style={styles.label}>Full name</Text>
+        <TextInput
+          style={styles.input}
+          value={fullName}
+          onChangeText={setFullName}
+          placeholder="Full name"
+        />
 
         <Text style={styles.label}>Email</Text>
         <TextInput
@@ -46,10 +56,14 @@ export default function LoginScreen({
           secureTextEntry
         />
 
-        {loading ? <ActivityIndicator /> : <Button title="Login" onPress={onLogin} />}
+        {loading ? (
+          <ActivityIndicator />
+        ) : (
+          <Button title="Register" onPress={onRegister} />
+        )}
 
         <View style={styles.switchButton}>
-          <Button title="Create new account" onPress={onGoToRegister} />
+          <Button title="Already have an account? Login" onPress={onGoToLogin} />
         </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import LoginScreen from './src/screens/LoginScreen';
+import RegisterScreen from './src/screens/RegisterScreen';
 import MedicinesScreen from './src/screens/MedicinesScreen';
-import { login } from './src/services/authService';
+import { login, register } from './src/services/authService';
 import {
   createMedicine,
   deleteMedicine,
@@ -10,6 +11,9 @@ import {
 } from './src/services/medicineService';
 
 export default function App() {
+  const [authMode, setAuthMode] = useState('login');
+
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('imane@test.com');
   const [password, setPassword] = useState('123456789');
 
@@ -38,9 +42,19 @@ export default function App() {
 
   const fetchMedicines = async (jwtToken = token) => {
     setError('');
-
     const data = await getMedicines(jwtToken);
     setMedicines(data);
+  };
+
+  const saveAuthenticatedUser = async (data) => {
+    setUser({
+      id: data.userId,
+      fullName: data.fullName,
+      email: data.email,
+    });
+
+    setToken(data.token);
+    await fetchMedicines(data.token);
   };
 
   const handleLogin = async () => {
@@ -52,15 +66,24 @@ export default function App() {
 
     try {
       const data = await login(email, password);
+      await saveAuthenticatedUser(data);
+    } catch (err) {
+      setError(err.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      setUser({
-        id: data.userId,
-        fullName: data.fullName,
-        email: data.email,
-      });
+  const handleRegister = async () => {
+    setLoading(true);
+    setError('');
+    setUser(null);
+    setToken('');
+    setMedicines([]);
 
-      setToken(data.token);
-      await fetchMedicines(data.token);
+    try {
+      const data = await register(fullName, email, password);
+      await saveAuthenticatedUser(data);
     } catch (err) {
       setError(err.message || 'Something went wrong');
     } finally {
@@ -130,7 +153,28 @@ export default function App() {
     setMedicines([]);
     setError('');
     clearMedicineForm();
+    setAuthMode('login');
   };
+
+  if (!user && authMode === 'register') {
+    return (
+      <RegisterScreen
+        fullName={fullName}
+        setFullName={setFullName}
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        loading={loading}
+        error={error}
+        onRegister={handleRegister}
+        onGoToLogin={() => {
+          setError('');
+          setAuthMode('login');
+        }}
+      />
+    );
+  }
 
   if (!user) {
     return (
@@ -142,6 +186,11 @@ export default function App() {
         loading={loading}
         error={error}
         onLogin={handleLogin}
+        onGoToRegister={() => {
+          setError('');
+          setFullName('');
+          setAuthMode('register');
+        }}
       />
     );
   }
