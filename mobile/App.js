@@ -1,17 +1,13 @@
 import React, { useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
+import LoginScreen from './src/screens/LoginScreen';
+import MedicinesScreen from './src/screens/MedicinesScreen';
+import { login } from './src/services/authService';
 import {
-  ActivityIndicator,
-  Button,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-
-const API_BASE_URL = 'http://192.168.1.1:8080';
+  createMedicine,
+  deleteMedicine,
+  getMedicines,
+  updateMedicine,
+} from './src/services/medicineService';
 
 export default function App() {
   const [email, setEmail] = useState('imane@test.com');
@@ -40,6 +36,13 @@ export default function App() {
     setNotes('');
   };
 
+  const fetchMedicines = async (jwtToken = token) => {
+    setError('');
+
+    const data = await getMedicines(jwtToken);
+    setMedicines(data);
+  };
+
   const handleLogin = async () => {
     setLoading(true);
     setError('');
@@ -48,17 +51,7 @@ export default function App() {
     setMedicines([]);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Login failed with status ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await login(email, password);
 
       setUser({
         id: data.userId,
@@ -75,58 +68,23 @@ export default function App() {
     }
   };
 
-  const fetchMedicines = async (jwtToken = token) => {
-    setError('');
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/medicines`, {
-        headers: {
-          Authorization: `Bearer ${jwtToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to load medicines with status ${response.status}`);
-      }
-
-      const data = await response.json();
-      setMedicines(data);
-    } catch (err) {
-      setError(err.message || 'Could not load medicines');
-    }
-  };
-
   const handleSaveMedicine = async () => {
     setLoading(true);
     setError('');
 
-    const isEditing = editingMedicineId !== null;
-    const url = isEditing
-      ? `${API_BASE_URL}/api/medicines/${editingMedicineId}`
-      : `${API_BASE_URL}/api/medicines`;
+    const medicinePayload = {
+      name: medicineName,
+      dose,
+      time,
+      frequency,
+      notes,
+    };
 
     try {
-      const response = await fetch(url, {
-        method: isEditing ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: medicineName,
-          dose,
-          time,
-          frequency,
-          notes,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          isEditing
-            ? `Update medicine failed with status ${response.status}`
-            : `Add medicine failed with status ${response.status}`
-        );
+      if (editingMedicineId) {
+        await updateMedicine(token, editingMedicineId, medicinePayload);
+      } else {
+        await createMedicine(token, medicinePayload);
       }
 
       clearMedicineForm();
@@ -152,16 +110,7 @@ export default function App() {
     setError('');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/medicines/${id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Delete failed with status ${response.status}`);
-      }
+      await deleteMedicine(token, id);
 
       if (editingMedicineId === id) {
         clearMedicineForm();
@@ -183,240 +132,45 @@ export default function App() {
     clearMedicineForm();
   };
 
-  if (user) {
+  if (!user) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar style="auto" />
-
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.card}>
-            <Text style={styles.title}>My Medicines</Text>
-            <Text style={styles.subtitle}>Logged in as {user.fullName}</Text>
-
-            <Text style={styles.sectionTitle}>
-              {editingMedicineId ? 'Edit medicine' : 'Add medicine'}
-            </Text>
-
-            <Text style={styles.label}>Name</Text>
-            <TextInput
-              style={styles.input}
-              value={medicineName}
-              onChangeText={setMedicineName}
-              placeholder="Example: Vitamin C"
-            />
-
-            <Text style={styles.label}>Dose</Text>
-            <TextInput
-              style={styles.input}
-              value={dose}
-              onChangeText={setDose}
-              placeholder="Example: 500mg"
-            />
-
-            <Text style={styles.label}>Time</Text>
-            <TextInput
-              style={styles.input}
-              value={time}
-              onChangeText={setTime}
-              placeholder="Example: 08:00:00"
-            />
-
-            <Text style={styles.label}>Frequency</Text>
-            <TextInput
-              style={styles.input}
-              value={frequency}
-              onChangeText={setFrequency}
-              placeholder="Example: Once per day"
-            />
-
-            <Text style={styles.label}>Notes</Text>
-            <TextInput
-              style={styles.input}
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="Example: After breakfast"
-            />
-
-            {loading ? (
-              <ActivityIndicator />
-            ) : (
-              <Button
-                title={editingMedicineId ? 'Update medicine' : 'Add medicine'}
-                onPress={handleSaveMedicine}
-              />
-            )}
-
-            {editingMedicineId ? (
-              <View style={styles.cancelButton}>
-                <Button title="Cancel edit" onPress={clearMedicineForm} />
-              </View>
-            ) : null}
-
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-
-            <Text style={styles.sectionTitle}>Medicine list</Text>
-
-            <Button title="Refresh list" onPress={() => fetchMedicines()} />
-
-            {medicines.length === 0 ? (
-              <Text style={styles.emptyText}>No medicines found.</Text>
-            ) : (
-              medicines.map((item) => (
-                <View key={item.id} style={styles.medicineItem}>
-                  <Text style={styles.medicineName}>{item.name}</Text>
-                  <Text>Dose: {item.dose || '-'}</Text>
-                  <Text>Time: {item.time}</Text>
-                  <Text>Frequency: {item.frequency}</Text>
-                  <Text>Notes: {item.notes || '-'}</Text>
-
-                  <View style={styles.actionRow}>
-                    <View style={styles.actionButton}>
-                      <Button title="Edit" onPress={() => handleEditMedicine(item)} />
-                    </View>
-
-                    <View style={styles.actionButton}>
-                      <Button
-                        title="Delete"
-                        color="red"
-                        onPress={() => handleDeleteMedicine(item.id)}
-                      />
-                    </View>
-                  </View>
-                </View>
-              ))
-            )}
-
-            <View style={styles.logoutButton}>
-              <Button title="Logout" color="red" onPress={handleLogout} />
-            </View>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
+      <LoginScreen
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        loading={loading}
+        error={error}
+        onLogin={handleLogin}
+      />
     );
   }
 
   return (
-    <SafeAreaView style={styles.loginContainer}>
-      <StatusBar style="auto" />
-
-      <View style={styles.card}>
-        <Text style={styles.title}>Medicine Reminder</Text>
-        <Text style={styles.subtitle}>Login to manage your medicine schedule</Text>
-
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={styles.input}
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Email"
-        />
-
-        <Text style={styles.label}>Password</Text>
-        <TextInput
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Password"
-          secureTextEntry
-        />
-
-        {loading ? (
-          <ActivityIndicator />
-        ) : (
-          <Button title="Login" onPress={handleLogin} />
-        )}
-
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-      </View>
-    </SafeAreaView>
+    <MedicinesScreen
+      user={user}
+      medicines={medicines}
+      form={{
+        editingMedicineId,
+        medicineName,
+        setMedicineName,
+        dose,
+        setDose,
+        time,
+        setTime,
+        frequency,
+        setFrequency,
+        notes,
+        setNotes,
+      }}
+      loading={loading}
+      error={error}
+      onSaveMedicine={handleSaveMedicine}
+      onEditMedicine={handleEditMedicine}
+      onDeleteMedicine={handleDeleteMedicine}
+      onRefresh={() => fetchMedicines()}
+      onLogout={handleLogout}
+      onCancelEdit={clearMedicineForm}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-  },
-  loginContainer: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  scrollContent: {
-    alignItems: 'center',
-    padding: 20,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 520,
-    backgroundColor: '#ffffff',
-    padding: 24,
-    borderRadius: 16,
-    gap: 10,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  subtitle: {
-    textAlign: 'center',
-    color: '#666',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginTop: 18,
-    marginBottom: 6,
-  },
-  label: {
-    fontWeight: '600',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
-  },
-  error: {
-    color: 'red',
-    marginTop: 10,
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#666',
-    marginTop: 20,
-  },
-  medicineItem: {
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    padding: 12,
-    borderRadius: 10,
-    marginTop: 10,
-  },
-  medicineName: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 10,
-  },
-  actionButton: {
-    flex: 1,
-  },
-  cancelButton: {
-    marginTop: 8,
-  },
-  logoutButton: {
-    marginTop: 16,
-  },
-});
