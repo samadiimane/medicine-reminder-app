@@ -3,8 +3,8 @@ import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
   Button,
-  FlatList,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,9 +16,17 @@ const API_BASE_URL = 'http://192.168.1.1:8080';
 export default function App() {
   const [email, setEmail] = useState('imane@test.com');
   const [password, setPassword] = useState('123456789');
+
   const [user, setUser] = useState(null);
   const [token, setToken] = useState('');
   const [medicines, setMedicines] = useState([]);
+
+  const [medicineName, setMedicineName] = useState('');
+  const [dose, setDose] = useState('');
+  const [time, setTime] = useState('08:00:00');
+  const [frequency, setFrequency] = useState('');
+  const [notes, setNotes] = useState('');
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -32,9 +40,7 @@ export default function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
@@ -80,6 +86,44 @@ export default function App() {
     }
   };
 
+  const handleAddMedicine = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/medicines`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: medicineName,
+          dose,
+          time,
+          frequency,
+          notes,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Add medicine failed with status ${response.status}`);
+      }
+
+      setMedicineName('');
+      setDose('');
+      setTime('08:00:00');
+      setFrequency('');
+      setNotes('');
+
+      await fetchMedicines();
+    } catch (err) {
+      setError(err.message || 'Could not add medicine');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogout = () => {
     setUser(null);
     setToken('');
@@ -92,36 +136,84 @@ export default function App() {
       <SafeAreaView style={styles.container}>
         <StatusBar style="auto" />
 
-        <View style={styles.card}>
-          <Text style={styles.title}>My Medicines</Text>
-          <Text style={styles.subtitle}>Logged in as {user.fullName}</Text>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.card}>
+            <Text style={styles.title}>My Medicines</Text>
+            <Text style={styles.subtitle}>Logged in as {user.fullName}</Text>
 
-          <Button title="Refresh list" onPress={() => fetchMedicines()} />
+            <Text style={styles.sectionTitle}>Add medicine</Text>
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+            <Text style={styles.label}>Name</Text>
+            <TextInput
+              style={styles.input}
+              value={medicineName}
+              onChangeText={setMedicineName}
+              placeholder="Example: Vitamin C"
+            />
 
-          {medicines.length === 0 ? (
-            <Text style={styles.emptyText}>No medicines found.</Text>
-          ) : (
-            <FlatList
-              data={medicines}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={({ item }) => (
-                <View style={styles.medicineItem}>
+            <Text style={styles.label}>Dose</Text>
+            <TextInput
+              style={styles.input}
+              value={dose}
+              onChangeText={setDose}
+              placeholder="Example: 500mg"
+            />
+
+            <Text style={styles.label}>Time</Text>
+            <TextInput
+              style={styles.input}
+              value={time}
+              onChangeText={setTime}
+              placeholder="Example: 08:00:00"
+            />
+
+            <Text style={styles.label}>Frequency</Text>
+            <TextInput
+              style={styles.input}
+              value={frequency}
+              onChangeText={setFrequency}
+              placeholder="Example: Once per day"
+            />
+
+            <Text style={styles.label}>Notes</Text>
+            <TextInput
+              style={styles.input}
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Example: After breakfast"
+            />
+
+            {loading ? (
+              <ActivityIndicator />
+            ) : (
+              <Button title="Add medicine" onPress={handleAddMedicine} />
+            )}
+
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            <Text style={styles.sectionTitle}>Medicine list</Text>
+
+            <Button title="Refresh list" onPress={() => fetchMedicines()} />
+
+            {medicines.length === 0 ? (
+              <Text style={styles.emptyText}>No medicines found.</Text>
+            ) : (
+              medicines.map((item) => (
+                <View key={item.id} style={styles.medicineItem}>
                   <Text style={styles.medicineName}>{item.name}</Text>
                   <Text>Dose: {item.dose || '-'}</Text>
                   <Text>Time: {item.time}</Text>
                   <Text>Frequency: {item.frequency}</Text>
                   <Text>Notes: {item.notes || '-'}</Text>
                 </View>
-              )}
-            />
-          )}
+              ))
+            )}
 
-          <View style={styles.logoutButton}>
-            <Button title="Logout" color="red" onPress={handleLogout} />
+            <View style={styles.logoutButton}>
+              <Button title="Logout" color="red" onPress={handleLogout} />
+            </View>
           </View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -168,14 +260,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f3f4f6',
+  },
+  scrollContent: {
     alignItems: 'center',
-    justifyContent: 'center',
     padding: 20,
   },
   card: {
     width: '100%',
-    maxWidth: 480,
-    maxHeight: '90%',
+    maxWidth: 520,
     backgroundColor: '#ffffff',
     padding: 24,
     borderRadius: 16,
@@ -190,6 +282,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#666',
     marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: 18,
+    marginBottom: 6,
   },
   label: {
     fontWeight: '600',
