@@ -124,6 +124,30 @@ export default function App() {
     }
   };
 
+  const handleDeleteMedicine = async (id) => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/medicines/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Delete failed with status ${response.status}`);
+      }
+
+      await fetchMedicines();
+    } catch (err) {
+      setError(err.message || 'Could not delete medicine');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogout = () => {
     setUser(null);
     setToken('');
@@ -205,6 +229,14 @@ export default function App() {
                   <Text>Time: {item.time}</Text>
                   <Text>Frequency: {item.frequency}</Text>
                   <Text>Notes: {item.notes || '-'}</Text>
+
+                  <View style={styles.deleteButton}>
+                    <Button
+                      title="Delete"
+                      color="red"
+                      onPress={() => handleDeleteMedicine(item.id)}
+                    />
+                  </View>
                 </View>
               ))
             )}
@@ -219,7 +251,7 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.loginContainer}>
       <StatusBar style="auto" />
 
       <View style={styles.card}>
@@ -260,6 +292,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f3f4f6',
+  },
+  loginContainer: {
+    flex: 1,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
   },
   scrollContent: {
     alignItems: 'center',
@@ -320,6 +359,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 4,
+  },
+  deleteButton: {
+    marginTop: 10,
   },
   logoutButton: {
     marginTop: 16,
