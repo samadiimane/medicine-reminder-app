@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
   Button,
+  FlatList,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -17,6 +18,7 @@ export default function App() {
   const [password, setPassword] = useState('123456789');
   const [user, setUser] = useState(null);
   const [token, setToken] = useState('');
+  const [medicines, setMedicines] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -25,6 +27,7 @@ export default function App() {
     setError('');
     setUser(null);
     setToken('');
+    setMedicines([]);
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
@@ -40,18 +43,88 @@ export default function App() {
       }
 
       const data = await response.json();
+
       setUser({
         id: data.userId,
         fullName: data.fullName,
         email: data.email,
       });
+
       setToken(data.token);
+      await fetchMedicines(data.token);
     } catch (err) {
       setError(err.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
   };
+
+  const fetchMedicines = async (jwtToken = token) => {
+    setError('');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/medicines`, {
+        headers: {
+          Authorization: `Bearer ${jwtToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load medicines with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      setMedicines(data);
+    } catch (err) {
+      setError(err.message || 'Could not load medicines');
+    }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setToken('');
+    setMedicines([]);
+    setError('');
+  };
+
+  if (user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="auto" />
+
+        <View style={styles.card}>
+          <Text style={styles.title}>My Medicines</Text>
+          <Text style={styles.subtitle}>Logged in as {user.fullName}</Text>
+
+          <Button title="Refresh list" onPress={() => fetchMedicines()} />
+
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
+          {medicines.length === 0 ? (
+            <Text style={styles.emptyText}>No medicines found.</Text>
+          ) : (
+            <FlatList
+              data={medicines}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <View style={styles.medicineItem}>
+                  <Text style={styles.medicineName}>{item.name}</Text>
+                  <Text>Dose: {item.dose || '-'}</Text>
+                  <Text>Time: {item.time}</Text>
+                  <Text>Frequency: {item.frequency}</Text>
+                  <Text>Notes: {item.notes || '-'}</Text>
+                </View>
+              )}
+            />
+          )}
+
+          <View style={styles.logoutButton}>
+            <Button title="Logout" color="red" onPress={handleLogout} />
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -86,15 +159,6 @@ export default function App() {
         )}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        {user ? (
-          <View style={styles.resultBox}>
-            <Text style={styles.success}>Login successful ✅</Text>
-            <Text>User: {user.fullName}</Text>
-            <Text>Email: {user.email}</Text>
-            <Text numberOfLines={2}>Token: {token}</Text>
-          </View>
-        ) : null}
       </View>
     </SafeAreaView>
   );
@@ -110,7 +174,8 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '100%',
-    maxWidth: 420,
+    maxWidth: 480,
+    maxHeight: '90%',
     backgroundColor: '#ffffff',
     padding: 24,
     borderRadius: 16,
@@ -140,15 +205,25 @@ const styles = StyleSheet.create({
     color: 'red',
     marginTop: 10,
   },
-  resultBox: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: '#ecfdf5',
-    borderRadius: 10,
-    gap: 4,
+  emptyText: {
+    textAlign: 'center',
+    color: '#666',
+    marginTop: 20,
   },
-  success: {
+  medicineItem: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 10,
+  },
+  medicineName: {
+    fontSize: 18,
     fontWeight: '700',
-    color: 'green',
+    marginBottom: 4,
+  },
+  logoutButton: {
+    marginTop: 16,
   },
 });
