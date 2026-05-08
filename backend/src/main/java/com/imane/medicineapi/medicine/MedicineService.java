@@ -1,6 +1,9 @@
 package com.imane.medicineapi.medicine;
 
+import com.imane.medicineapi.auth.AppUser;
+import com.imane.medicineapi.auth.AppUserRepository;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -10,13 +13,20 @@ import java.util.List;
 public class MedicineService {
 
     private final MedicineRepository medicineRepository;
+    private final AppUserRepository appUserRepository;
 
-    public MedicineService(MedicineRepository medicineRepository) {
+    public MedicineService(
+            MedicineRepository medicineRepository,
+            AppUserRepository appUserRepository
+    ) {
         this.medicineRepository = medicineRepository;
+        this.appUserRepository = appUserRepository;
     }
 
     public List<MedicineResponse> findAll() {
-        return medicineRepository.findAll()
+        String email = getCurrentUserEmail();
+
+        return medicineRepository.findAllByUserEmail(email)
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -28,12 +38,15 @@ public class MedicineService {
     }
 
     public MedicineResponse create(MedicineRequest request) {
+        AppUser currentUser = getCurrentUser();
+
         Medicine medicine = new Medicine();
         medicine.setName(request.name());
         medicine.setDose(request.dose());
         medicine.setTime(request.time());
         medicine.setFrequency(request.frequency());
         medicine.setNotes(request.notes());
+        medicine.setUser(currentUser);
 
         Medicine savedMedicine = medicineRepository.save(medicine);
         return toResponse(savedMedicine);
@@ -58,11 +71,29 @@ public class MedicineService {
     }
 
     private Medicine getMedicineOrThrow(Long id) {
-        return medicineRepository.findById(id)
+        String email = getCurrentUserEmail();
+
+        return medicineRepository.findByIdAndUserEmail(id, email)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Medicine not found with id: " + id
                 ));
+    }
+
+    private AppUser getCurrentUser() {
+        String email = getCurrentUserEmail();
+
+        return appUserRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Authenticated user not found"
+                ));
+    }
+
+    private String getCurrentUserEmail() {
+        return SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
     }
 
     private MedicineResponse toResponse(Medicine medicine) {

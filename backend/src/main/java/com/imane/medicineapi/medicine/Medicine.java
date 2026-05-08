@@ -1,5 +1,6 @@
 package com.imane.medicineapi.medicine;
 
+import com.imane.medicineapi.auth.AppUser;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,4 +31,8 @@ public class Medicine {
     private String frequency;
 
     private String notes;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private AppUser user;
 }
