@@ -2,13 +2,17 @@ import React from 'react';
 import {
   ActivityIndicator,
   Button,
+  Image,
   SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+import { colors, spacing } from '../styles/theme';
+import { commonStyles } from '../styles/commonStyles';
+
+const logo = require('../../assets/logo.png');
 
 export default function RegisterScreen({
   fullName,
@@ -23,33 +27,33 @@ export default function RegisterScreen({
   onGoToLogin,
 }) {
   return (
-    <SafeAreaView style={styles.loginContainer}>
-      <StatusBar style="auto" />
+    <SafeAreaView style={commonStyles.centeredScreen}>
+      <View style={styles.authCard}>
+        <Image source={logo} style={styles.logo} resizeMode="contain" />
 
-      <View style={styles.card}>
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Register to manage your medicines</Text>
+        <Text style={commonStyles.title}>Create Account</Text>
+        <Text style={commonStyles.subtitle}>Start managing your medicine safely</Text>
 
-        <Text style={styles.label}>Full name</Text>
+        <Text style={commonStyles.label}>Full name</Text>
         <TextInput
-          style={styles.input}
+          style={commonStyles.input}
           value={fullName}
           onChangeText={setFullName}
           placeholder="Full name"
         />
 
-        <Text style={styles.label}>Email</Text>
+        <Text style={commonStyles.label}>Email</Text>
         <TextInput
-          style={styles.input}
+          style={commonStyles.input}
           autoCapitalize="none"
           value={email}
           onChangeText={setEmail}
           placeholder="Email"
         />
 
-        <Text style={styles.label}>Password</Text>
+        <Text style={commonStyles.label}>Password</Text>
         <TextInput
-          style={styles.input}
+          style={commonStyles.input}
           value={password}
           onChangeText={setPassword}
           placeholder="Password"
@@ -57,62 +61,30 @@ export default function RegisterScreen({
         />
 
         {loading ? (
-          <ActivityIndicator />
+          <ActivityIndicator color={colors.primary} />
         ) : (
-          <Button title="Register" onPress={onRegister} />
+          <Button title="Register" color={colors.primary} onPress={onRegister} />
         )}
 
-        <View style={styles.switchButton}>
-          <Button title="Already have an account? Login" onPress={onGoToLogin} />
+        <View style={commonStyles.linkButton}>
+          <Button title="Already have an account? Login" color={colors.accent} onPress={onGoToLogin} />
         </View>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={commonStyles.error}>{error}</Text> : null}
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  loginContainer: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  card: {
+  authCard: {
+    ...commonStyles.card,
     width: '100%',
-    maxWidth: 520,
-    backgroundColor: '#ffffff',
-    padding: 24,
-    borderRadius: 16,
-    gap: 10,
+    maxWidth: 460,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  subtitle: {
-    textAlign: 'center',
-    color: '#666',
-    marginBottom: 12,
-  },
-  label: {
-    fontWeight: '600',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
-  },
-  switchButton: {
-    marginTop: 8,
-  },
-  error: {
-    color: 'red',
-    marginTop: 10,
+  logo: {
+    width: 220,
+    height: 200,
+    alignSelf: 'center',
   },
 });

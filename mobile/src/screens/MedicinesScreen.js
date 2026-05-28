@@ -1,8 +1,10 @@
 import React from 'react';
-import { Button, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import AppHeader from '../components/AppHeader';
 import MedicineForm from '../components/MedicineForm';
 import MedicineCard from '../components/MedicineCard';
+import { colors, radius, spacing } from '../styles/theme';
+import { commonStyles } from '../styles/commonStyles';
 
 export default function MedicinesScreen({
   user,
@@ -10,6 +12,8 @@ export default function MedicinesScreen({
   form,
   loading,
   error,
+  isMedicineModalVisible,
+  onOpenAddModal,
   onSaveMedicine,
   onEditMedicine,
   onDeleteMedicine,
@@ -18,39 +22,33 @@ export default function MedicinesScreen({
   onCancelEdit,
 }) {
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="auto" />
+    <SafeAreaView style={commonStyles.screen}>
+      <ScrollView contentContainerStyle={commonStyles.pageContent}>
+        <AppHeader user={user} onLogout={onLogout} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.card}>
-          <Text style={styles.title}>My Medicines</Text>
-          <Text style={styles.subtitle}>Logged in as {user.fullName}</Text>
+        <Pressable style={styles.addButton} onPress={onOpenAddModal}>
+          <Text style={styles.addButtonText}>Add Medicine</Text>
+        </Pressable>
 
-          <MedicineForm
-            editingMedicineId={form.editingMedicineId}
-            medicineName={form.medicineName}
-            setMedicineName={form.setMedicineName}
-            dose={form.dose}
-            setDose={form.setDose}
-            time={form.time}
-            setTime={form.setTime}
-            frequency={form.frequency}
-            setFrequency={form.setFrequency}
-            notes={form.notes}
-            setNotes={form.setNotes}
-            loading={loading}
-            onSave={onSaveMedicine}
-            onCancel={onCancelEdit}
-          />
+        {error ? <Text style={commonStyles.error}>{error}</Text> : null}
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+        <View style={styles.listHeader}>
+          <Text style={styles.sectionTitle}>Medicines</Text>
 
-          <Text style={styles.sectionTitle}>Medicine list</Text>
+          <Pressable onPress={onRefresh}>
+            <Text style={styles.refreshText}>Refresh</Text>
+          </Pressable>
+        </View>
 
-          <Button title="Refresh list" onPress={onRefresh} />
-
+        <View style={styles.listContainer}>
           {medicines.length === 0 ? (
-            <Text style={styles.emptyText}>No medicines found.</Text>
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyIcon}>🩺</Text>
+              <Text style={styles.emptyTitle}>No medicines yet</Text>
+              <Text style={styles.emptyText}>
+                Tap “Add Medicine” to create your first reminder.
+              </Text>
+            </View>
           ) : (
             medicines.map((medicine) => (
               <MedicineCard
@@ -61,59 +59,104 @@ export default function MedicinesScreen({
               />
             ))
           )}
-
-          <View style={styles.logoutButton}>
-            <Button title="Logout" color="red" onPress={onLogout} />
-          </View>
         </View>
+
+        <MedicineForm
+          visible={isMedicineModalVisible}
+          editingMedicineId={form.editingMedicineId}
+          medicineName={form.medicineName}
+          setMedicineName={form.setMedicineName}
+          dose={form.dose}
+          setDose={form.setDose}
+          time={form.time}
+          setTime={form.setTime}
+          frequency={form.frequency}
+          setFrequency={form.setFrequency}
+          notes={form.notes}
+          setNotes={form.setNotes}
+          loading={loading}
+          onSave={onSaveMedicine}
+          onCancel={onCancelEdit}
+        />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
+  summaryCard: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
   },
-  scrollContent: {
-    alignItems: 'center',
-    padding: 20,
+  summaryTitle: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: '900',
   },
-  card: {
-    width: '100%',
-    maxWidth: 520,
+  summaryText: {
+    color: '#d1fae5',
+    marginTop: 6,
+    fontWeight: '600',
+  },
+  addButton: {
     backgroundColor: '#ffffff',
-    padding: 24,
-    borderRadius: 16,
-    gap: 10,
+    borderColor: colors.primary,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
-  title: {
-    fontSize: 26,
+  addButtonText: {
+    color: colors.primary,
+    fontSize: 16,
     fontWeight: '700',
-    textAlign: 'center',
   },
-  subtitle: {
-    textAlign: 'center',
-    color: '#666',
-    marginBottom: 12,
+  listHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
   },
   sectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  refreshText: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  listContainer: {
+    width: '100%',
+  },
+  emptyBox: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  emptyIcon: {
+    fontSize: 42,
+    marginBottom: spacing.sm,
+  },
+  emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    marginTop: 18,
-    marginBottom: 6,
-  },
-  error: {
-    color: 'red',
-    marginTop: 10,
+    color: colors.text,
   },
   emptyText: {
+    color: colors.muted,
     textAlign: 'center',
-    color: '#666',
-    marginTop: 20,
-  },
-  logoutButton: {
-    marginTop: 16,
+    marginTop: 6,
   },
 });

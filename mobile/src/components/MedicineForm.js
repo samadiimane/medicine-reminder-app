@@ -1,7 +1,19 @@
 import React from 'react';
-import { ActivityIndicator, Button, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Button,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { colors, radius, spacing } from '../styles/theme';
+import { commonStyles } from '../styles/commonStyles';
 
 export default function MedicineForm({
+  visible,
   editingMedicineId,
   medicineName,
   setMedicineName,
@@ -18,87 +30,143 @@ export default function MedicineForm({
   onCancel,
 }) {
   return (
-    <View>
-      <Text style={styles.sectionTitle}>
-        {editingMedicineId ? 'Edit medicine' : 'Add medicine'}
-      </Text>
+    <Modal visible={visible} animationType="fade" transparent>
+      <View style={styles.overlay}>
+        <View style={styles.modalCard}>
+          <View style={styles.modalHeader}>
+            <View>
+              <Text style={styles.modalTitle}>
+                {editingMedicineId ? 'Edit Medicine' : 'Add Medicine'}
+              </Text>
+              <Text style={styles.modalSubtitle}>
+                Keep the schedule clear and easy to follow.
+              </Text>
+            </View>
 
-      <Text style={styles.label}>Name</Text>
-      <TextInput
-        style={styles.input}
-        value={medicineName}
-        onChangeText={setMedicineName}
-        placeholder="Example: Vitamin C"
-      />
+            <Pressable style={styles.closeButton} onPress={onCancel}>
+              <Text style={styles.closeButtonText}>×</Text>
+            </Pressable>
+          </View>
 
-      <Text style={styles.label}>Dose</Text>
-      <TextInput
-        style={styles.input}
-        value={dose}
-        onChangeText={setDose}
-        placeholder="Example: 500mg"
-      />
+          <Text style={commonStyles.label}>Name</Text>
+          <TextInput
+            style={commonStyles.input}
+            value={medicineName}
+            onChangeText={setMedicineName}
+            placeholder="Example: Vitamin C"
+          />
 
-      <Text style={styles.label}>Time</Text>
-      <TextInput
-        style={styles.input}
-        value={time}
-        onChangeText={setTime}
-        placeholder="Example: 08:00:00"
-      />
+          <Text style={commonStyles.label}>Dose</Text>
+          <TextInput
+            style={commonStyles.input}
+            value={dose}
+            onChangeText={setDose}
+            placeholder="Example: 500mg"
+          />
 
-      <Text style={styles.label}>Frequency</Text>
-      <TextInput
-        style={styles.input}
-        value={frequency}
-        onChangeText={setFrequency}
-        placeholder="Example: Once per day"
-      />
+          <Text style={commonStyles.label}>Time</Text>
+          <TextInput
+            style={commonStyles.input}
+            value={time}
+            onChangeText={setTime}
+            placeholder="Example: 08:00:00"
+          />
 
-      <Text style={styles.label}>Notes</Text>
-      <TextInput
-        style={styles.input}
-        value={notes}
-        onChangeText={setNotes}
-        placeholder="Example: After breakfast"
-      />
+          <Text style={commonStyles.label}>Frequency</Text>
+          <TextInput
+            style={commonStyles.input}
+            value={frequency}
+            onChangeText={setFrequency}
+            placeholder="Example: Once per day"
+          />
 
-      {loading ? (
-        <ActivityIndicator />
-      ) : (
-        <Button
-          title={editingMedicineId ? 'Update medicine' : 'Add medicine'}
-          onPress={onSave}
-        />
-      )}
+          <Text style={commonStyles.label}>Notes</Text>
+          <TextInput
+            style={[commonStyles.input, styles.notesInput]}
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Example: After breakfast"
+            multiline
+          />
 
-      {editingMedicineId ? (
-        <View style={styles.cancelButton}>
-          <Button title="Cancel edit" onPress={onCancel} />
+          {loading ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <View style={styles.actions}>
+              <View style={styles.actionButton}>
+                <Button title="Cancel" color={colors.muted} onPress={onCancel} />
+              </View>
+
+              <View style={styles.actionButton}>
+                <Button
+                  title={editingMedicineId ? 'Update' : 'Save'}
+                  color={colors.primary}
+                  onPress={onSave}
+                />
+              </View>
+            </View>
+          )}
         </View>
-      ) : null}
-    </View>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginTop: 18,
-    marginBottom: 6,
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.lg,
   },
-  label: {
-    fontWeight: '600',
-  },
-  input: {
+  modalCard: {
+    width: '100%',
+    maxWidth: 520,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
+    borderColor: colors.cardBorder,
   },
-  cancelButton: {
-    marginTop: 8,
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  modalSubtitle: {
+    color: colors.muted,
+    marginTop: 4,
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButtonText: {
+    fontSize: 26,
+    color: colors.text,
+    lineHeight: 28,
+  },
+  notesInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  actionButton: {
+    flex: 1,
   },
 });

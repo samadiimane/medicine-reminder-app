@@ -21,6 +21,7 @@ export default function App() {
   const [token, setToken] = useState('');
   const [medicines, setMedicines] = useState([]);
 
+  const [isMedicineModalVisible, setMedicineModalVisible] = useState(false);
   const [editingMedicineId, setEditingMedicineId] = useState(null);
   const [medicineName, setMedicineName] = useState('');
   const [dose, setDose] = useState('');
@@ -38,6 +39,18 @@ export default function App() {
     setTime('08:00:00');
     setFrequency('');
     setNotes('');
+    setMedicineModalVisible(false);
+  };
+
+  const openAddModal = () => {
+    setError('');
+    setEditingMedicineId(null);
+    setMedicineName('');
+    setDose('');
+    setTime('08:00:00');
+    setFrequency('');
+    setNotes('');
+    setMedicineModalVisible(true);
   };
 
   const fetchMedicines = async (jwtToken = token) => {
@@ -120,12 +133,14 @@ export default function App() {
   };
 
   const handleEditMedicine = (medicine) => {
+    setError('');
     setEditingMedicineId(medicine.id);
     setMedicineName(medicine.name || '');
     setDose(medicine.dose || '');
     setTime(medicine.time || '08:00:00');
     setFrequency(medicine.frequency || '');
     setNotes(medicine.notes || '');
+    setMedicineModalVisible(true);
   };
 
   const handleDeleteMedicine = async (id) => {
@@ -214,6 +229,8 @@ export default function App() {
       }}
       loading={loading}
       error={error}
+      isMedicineModalVisible={isMedicineModalVisible}
+      onOpenAddModal={openAddModal}
       onSaveMedicine={handleSaveMedicine}
       onEditMedicine={handleEditMedicine}
       onDeleteMedicine={handleDeleteMedicine}
